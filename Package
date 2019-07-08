@@ -21,7 +21,7 @@ case "$arch" in
 esac
 case "$package_manager" in
 	deb)
-		;;
+		requirements="${requirements},libboost-filesystem-dev,libboost-program-options-dev";;
 	rpm)
-		;;
+		requirements="${requirements},boost-filesystem,boost-program-options";;
 esac
