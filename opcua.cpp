@@ -26,7 +26,6 @@ using namespace OpcUa;
 OPCUAServer::OPCUAServer() : m_server(NULL)
 {
 	m_log = Logger::getLogger();
-	m_log->setMinLevel("debug");
 }
 
 /**
