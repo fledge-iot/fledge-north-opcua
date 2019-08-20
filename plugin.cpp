@@ -25,7 +25,7 @@ using namespace rapidjson;
 
 extern "C" {
 
-#define PLUGIN_NAME "OPCUA"
+#define PLUGIN_NAME "opcua"
 
 /**
  * Plugin specific default configuration
