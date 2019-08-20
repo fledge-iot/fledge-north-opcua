@@ -1,9 +1,8 @@
 # A set of variables that define how we package this repository
 #
-plugin_name=OPCUA
+plugin_name=opcua
 plugin_type=north
 plugin_install_dirname=${plugin_name}
-plugin_package_name=foglamp-${plugin_type}-opcua
 
 # Now build up the runtime requirements list. This has 3 components
 #   1. Generic packages we depend on in all architectures and package managers
