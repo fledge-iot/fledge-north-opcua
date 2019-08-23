@@ -170,5 +170,8 @@ void OPCUAServer::updateAsset(Reading *reading)
 
 void OPCUAServer::stop()
 {
-	m_server->Stop();
+	if (m_server)
+	{
+		m_server->Stop();
+	}
 }
