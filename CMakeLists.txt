@@ -114,6 +114,9 @@ if (NOT OPCUASERVER)
 endif()
 target_link_libraries(${PROJECT_NAME} ${OPCUASERVER} ${OPCUACORE} ${OPCUAPROTOCOL})
 
+find_package(Boost 1.53.0 COMPONENTS thread REQUIRED)
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+
 # Set the build version 
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION 1)
 

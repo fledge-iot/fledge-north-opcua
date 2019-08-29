@@ -57,6 +57,14 @@ const char *default_config = QUOTE({
 				"default" : "http://foglamp.dianomic.com",
 				"order" : "3",
 				"displayName" : "Namespace"
+			},
+			"source" : {
+				"description" : "The Source of the data to send",
+				"type" : "enumeration",
+				"options" : ["readings", "statistics"],
+				"default" : "readings",
+				"order" : "4",
+				"displayName" : "Source"
 			}
 		});
 
