@@ -1,5 +1,5 @@
 /*
- * FogLAMP OPC UA north plugin.
+ * Fledge OPC UA north plugin.
  *
  * Copyright (c) 2019 Dianomic Systems
  *
@@ -37,7 +37,7 @@ OPCUAServer::~OPCUAServer()
 
 /**
  *
- * @param conf	FogLAMP configuration category
+ * @param conf	Fledge configuration category
  */
 void OPCUAServer::configure(const ConfigCategory *conf)
 {

@@ -1,11 +1,11 @@
 ===================
-foglamp-north-opcua
+fledge-north-opcua
 ===================
 
-FogLAMP North Plugin that acts as an OPCUA server
+Fledge North Plugin that acts as an OPCUA server
 
 This is a proof of concept OPC UA server that can be run in the sending
-process of FogLAMP to make FogLAMP appear as an OPC UA server.
+process of Fledge to make Fledge appear as an OPC UA server.
 
 Configuration options
 ---------------------

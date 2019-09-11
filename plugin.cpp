@@ -1,5 +1,5 @@
 /*
- * FogLAMP Google Cloud Platform IoT-Core north plugin.
+ * Fledge Google Cloud Platform IoT-Core north plugin.
  *
  * Copyright (c) 2019 Dianomic Systems
  *
@@ -40,21 +40,21 @@ const char *default_config = QUOTE({
 			"url" : {
 				"description" : "The OPC UA Server URL",
 				"type" : "string",
-				"default" : "opc.tcp://localhost:4840/foglamp/server",
+				"default" : "opc.tcp://localhost:4840/fledge/server",
 				"order" : "1",
 				"displayName" : "URL"
 			},
 			"uri" : {
 				"description" : "The OPC UA Server URI",
 				"type" : "string",
-				"default" : "urn://foglamp.dianomic.com",
+				"default" : "urn://fledge.dianomic.com",
 				"order" : "2",
 				"displayName" : "URL"
 			},
 			"namespace" : {
 				"description" : "The OPC UA Namespace",
 				"type" : "string",
-				"default" : "http://foglamp.dianomic.com",
+				"default" : "http://fledge.dianomic.com",
 				"order" : "3",
 				"displayName" : "Namespace"
 			},
