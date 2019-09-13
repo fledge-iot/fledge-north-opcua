@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 2.4.0)
 
 # Set the plugin name to build
-project(OPCUA)
+project(opcua)
+
+if(COMMAND cmake_policy)
+  cmake_policy(SET CMP0003 NEW)
+endif(COMMAND cmake_policy)
 
 # Supported options:
 # -DFOGLAMP_INCLUDE
@@ -109,6 +113,9 @@ if (NOT OPCUASERVER)
 	return()
 endif()
 target_link_libraries(${PROJECT_NAME} ${OPCUASERVER} ${OPCUACORE} ${OPCUAPROTOCOL})
+
+find_package(Boost 1.53.0 COMPONENTS thread REQUIRED)
+target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 
 # Set the build version 
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION 1)

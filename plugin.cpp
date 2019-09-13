@@ -19,17 +19,13 @@
 #include <version.h>
 #include <opcua.h>
 
-#define TO_STRING(...) DEFER(TO_STRING_)(__VA_ARGS__)
-#define DEFER(x) x
-#define TO_STRING_(...) #__VA_ARGS__
-#define QUOTE(...) TO_STRING(__VA_ARGS__)
 
 using namespace std;
 using namespace rapidjson;
 
 extern "C" {
 
-#define PLUGIN_NAME "OPCUA"
+#define PLUGIN_NAME "opcua"
 
 /**
  * Plugin specific default configuration
@@ -61,6 +57,14 @@ const char *default_config = QUOTE({
 				"default" : "http://foglamp.dianomic.com",
 				"order" : "3",
 				"displayName" : "Namespace"
+			},
+			"source" : {
+				"description" : "The Source of the data to send",
+				"type" : "enumeration",
+				"options" : ["readings", "statistics"],
+				"default" : "readings",
+				"order" : "4",
+				"displayName" : "Source"
 			}
 		});
 
