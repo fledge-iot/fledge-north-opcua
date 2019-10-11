@@ -103,6 +103,12 @@ int n;
 	return n;
 }
 
+/**
+ * Add a new asset to the object tree
+ * Called the first time we see a particular asset
+ *
+ * @param reading	The reading to add
+ */
 void OPCUAServer::addAsset(Reading *reading)
 {
 	string assetName = reading->getAssetName();
@@ -122,6 +128,15 @@ void OPCUAServer::addAsset(Reading *reading)
 	m_assets.insert(pair<string, Node>(assetName, obj));
 }
 
+/**
+ * Add the vsariable within an asset object. This may be
+ * called recusrively for nested objects
+ *
+ * @param assetName The name of the asset being added
+ * @param obj	The parent object
+ * @param name	The name of the variable to add
+ * @param value	The value of the variable
+ */
 void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, DatapointValue& value)
 {
 	if (value.getType() == DatapointValue::T_INTEGER)
@@ -149,13 +164,20 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 	}
 }
 
+/**
+ * Update the value of an asset we have seen previously
+ *
+ * @param reading	The reading to update
+ */
 void OPCUAServer::updateAsset(Reading *reading)
 {
-	m_log->info("Update asset: %s", reading->getAssetName().c_str());
-	auto it = m_assets.find(reading->getAssetName());
+string assetName = reading->getAssetName();
+
+	m_log->info("Update asset: %s", assetName.c_str());
+	auto it = m_assets.find(assetName);
 	if (it != m_assets.end())
 	{
-		vector<OpcUa::Node> variables = it->second.GetVariables();
+		Node obj = it->second;
 
 		vector<Datapoint *>& dataPoints = reading->getReadingData();
 		for (vector<Datapoint *>::iterator dpit = dataPoints.begin(); dpit != dataPoints.end(); ++dpit)
@@ -163,34 +185,64 @@ void OPCUAServer::updateAsset(Reading *reading)
 			// Get the reference to a DataPointValue
 			DatapointValue& value = (*dpit)->getData();
 			string name = (*dpit)->getName();
-			bool found = false;
-			for (auto var : variables)
-			{
-				OpcUa::QualifiedName qName = var.GetBrowseName();
-				if (qName.Name.compare(name) == 0)
-				{
-					if (value.getType() == DatapointValue::T_INTEGER)
-						var.SetValue(Variant(value.toInt()));
-					else if (value.getType() == DatapointValue::T_FLOAT)
-						var.SetValue(Variant(value.toDouble()));
-					else if (value.getType() == DatapointValue::T_STRING)
-						var.SetValue(value.toString());
-					found = true;
-				}
-			}
-			if (!found)
-			{
-				if (value.getType() == DatapointValue::T_INTEGER)
-					Node myvar = it->second.AddVariable(m_idx, name, Variant(value.toInt()));
-				else if (value.getType() == DatapointValue::T_FLOAT)
-					Node myvar = it->second.AddVariable(m_idx, name, Variant(value.toDouble()));
-				else if (value.getType() == DatapointValue::T_STRING)
-					Node myvar = it->second.AddVariable(m_idx, name, value.toString());
-			}
+			updateDatapoint(assetName, obj, name, value);
 		}
 	}
 }
 
+/**
+ * Update the datapoint for a given asset
+ *
+ * @param assetName The name of the asset being updates
+ * @param obj	The parent object
+ * @param name	The name of the variable to update
+ * @param value	The value of the variable
+ */
+void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, DatapointValue& value)
+{
+	bool found = false;
+	vector<OpcUa::Node> variables = obj.GetVariables();
+	for (auto var : variables)
+	{
+		OpcUa::QualifiedName qName = var.GetBrowseName();
+		if (qName.Name.compare(name) == 0)
+		{
+			if (value.getType() == DatapointValue::T_INTEGER)
+				var.SetValue(Variant(value.toInt()));
+			else if (value.getType() == DatapointValue::T_FLOAT)
+				var.SetValue(Variant(value.toDouble()));
+			else if (value.getType() == DatapointValue::T_STRING)
+				var.SetValue(value.toString());
+			else if (value.getType() == DatapointValue::T_DP_DICT)
+			{
+				vector<OpcUa::Node> childNodes = obj.GetChildren();
+				vector<Datapoint*> *children = value.getDpVec();
+				for (auto dpit = children->begin(); dpit != children->end(); dpit++)
+				{
+					name = (*dpit)->getName();
+					DatapointValue& val = (*dpit)->getData();
+					for (auto child : childNodes)
+					{
+						QualifiedName qName = child.GetBrowseName();
+						if (qName.Name.compare(name) == 0)
+						{
+							updateDatapoint(assetName, child, name, val);
+						}
+					}
+				}
+			} // TODO add support for arrays (T_DP_LIST)
+			found = true;
+		}
+	}
+	if (!found)
+	{
+		addDatapoint(assetName, obj, name, value);
+	}
+}
+
+/**
+ * Stop the OPCUA server
+ */
 void OPCUAServer::stop()
 {
 	if (m_server)
