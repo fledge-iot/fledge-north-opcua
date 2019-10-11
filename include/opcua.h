@@ -18,8 +18,11 @@ class OPCUAServer {
 	private:
 		void		updateAsset(Reading *reading);
 		void		addAsset(Reading *reading);
+		void		addDatapoint(std::string& assetName, OpcUa::Node& obj,
+					std::string& name, DatapointValue& value);
 		OpcUa::UaServer				*m_server;
 		std::map<std::string, OpcUa::Node>	m_assets;
+		std::string				m_name;
 		std::string				m_url;
 		std::string				m_uri;
 		std::string				m_namespace;

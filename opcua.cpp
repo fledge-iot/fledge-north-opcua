@@ -52,7 +52,11 @@ void OPCUAServer::configure(const ConfigCategory *conf)
 	if (conf->itemExists("namespace"))
 		m_namespace = conf->getValue("namespace");
 	else
-		m_log->error("Missing namesapce in configuration");
+		m_log->error("Missing namespace in configuration");
+	if (conf->itemExists("name"))
+		m_name = conf->getValue("name");
+	else
+		m_log->error("Missing name in configuration");
 }
 
 /**
@@ -72,6 +76,7 @@ int n;
 			m_server = new UaServer(m_log);
 			m_server->SetEndpoint(m_url);
 			m_server->SetServerURI(m_uri);
+			m_server->SetServerName(m_name);
 			m_server->Start();
 			m_log->info("Server started");
 	
@@ -112,18 +117,36 @@ void OPCUAServer::addAsset(Reading *reading)
 		// Get the reference to a DataPointValue
 		DatapointValue& value = (*it)->getData();
 		string name = (*it)->getName();
-		if (value.getType() == DatapointValue::T_INTEGER)
-			Node myvar = obj.AddVariable(m_idx, name, Variant(value.toInt()));
-		else if (value.getType() == DatapointValue::T_FLOAT)
-			Node myvar = obj.AddVariable(m_idx, name, Variant(value.toDouble()));
-		else if (value.getType() == DatapointValue::T_STRING)
-			Node myvar = obj.AddVariable(m_idx, name, value.toString());
-		else
-		{
-			m_log->warn("Asset %s, datapoint %s is unknown type %d", assetName.c_str(), name.c_str(), value.getType());
-		}
+		addDatapoint(assetName, obj, name, value);
 	}
 	m_assets.insert(pair<string, Node>(assetName, obj));
+}
+
+void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, DatapointValue& value)
+{
+	if (value.getType() == DatapointValue::T_INTEGER)
+		Node myvar = obj.AddVariable(m_idx, name, Variant(value.toInt()));
+	else if (value.getType() == DatapointValue::T_FLOAT)
+		Node myvar = obj.AddVariable(m_idx, name, Variant(value.toDouble()));
+	else if (value.getType() == DatapointValue::T_STRING)
+		Node myvar = obj.AddVariable(m_idx, name, value.toString());
+	else if (value.getType() == DatapointValue::T_DP_DICT)
+	{
+		NodeId	nodeId(name.c_str(), m_idx);
+		QualifiedName	qn(name, m_idx);
+		Node child = obj.AddObject(nodeId, qn);
+		vector<Datapoint*> *children = value.getDpVec();
+		for (auto dpit = children->begin(); dpit != children->end(); dpit++)
+		{
+			name = (*dpit)->getName();
+			DatapointValue& val = (*dpit)->getData();
+			addDatapoint(assetName, child, name, val);
+		}
+	} // TODO add support for arrays (T_DP_LIST)
+	else
+	{
+		m_log->warn("Asset %s, datapoint %s is unknown type %d", assetName.c_str(), name.c_str(), value.getType());
+	}
 }
 
 void OPCUAServer::updateAsset(Reading *reading)

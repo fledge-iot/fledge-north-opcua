@@ -37,26 +37,41 @@ const char *default_config = QUOTE({
 				"default" : PLUGIN_NAME,
 				"readonly" : "true"
 			},
+			"name" : {
+				"description" : "The OPC UA Server name to advertise",
+				"type" : "string",
+				"default" : "FogLAMP OPCUA",
+				"order" : "1",
+				"displayName" : "Server Name"
+			},
 			"url" : {
 				"description" : "The OPC UA Server URL",
 				"type" : "string",
 				"default" : "opc.tcp://localhost:4840/foglamp/server",
-				"order" : "1",
+				"order" : "2",
 				"displayName" : "URL"
 			},
 			"uri" : {
 				"description" : "The OPC UA Server URI",
 				"type" : "string",
 				"default" : "urn://foglamp.dianomic.com",
-				"order" : "2",
+				"order" : "3",
 				"displayName" : "URL"
 			},
 			"namespace" : {
 				"description" : "The OPC UA Namespace",
 				"type" : "string",
 				"default" : "http://foglamp.dianomic.com",
-				"order" : "3",
+				"order" : "4",
 				"displayName" : "Namespace"
+			},
+			"source" : {
+				"description" : "The Source of the data to send",
+				"type" : "enumeration",
+				"options" : ["readings", "statistics"],
+				"default" : "readings",
+				"order" : "5",
+				"displayName" : "Source"
 			}
 		});
 
