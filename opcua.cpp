@@ -129,8 +129,8 @@ void OPCUAServer::addAsset(Reading *reading)
 }
 
 /**
- * Add the vsariable within an asset object. This may be
- * called recusrively for nested objects
+ * Add the variable within an asset object. This may be
+ * called recursively for nested objects
  *
  * @param assetName The name of the asset being added
  * @param obj	The parent object
