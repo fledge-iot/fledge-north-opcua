@@ -87,7 +87,7 @@ int n;
 		}
 	}
 
-	for (auto reading = readings.cbegin(); reading != readings.cend(); reading ++)
+	for (auto reading = readings.cbegin(); reading != readings.cend(); reading++)
 	{
 		string assetName = (*reading)->getAssetName();
 		if (m_assets.find(assetName) == m_assets.end())

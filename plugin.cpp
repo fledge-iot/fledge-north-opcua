@@ -52,11 +52,11 @@ const char *default_config = QUOTE({
 				"displayName" : "URL"
 			},
 			"uri" : {
-				"description" : "The OPC UA Server URI",
+				"description" : "The OPC UA Service URI",
 				"type" : "string",
 				"default" : "urn://foglamp.dianomic.com",
 				"order" : "3",
-				"displayName" : "URL"
+				"displayName" : "URI"
 			},
 			"namespace" : {
 				"description" : "The OPC UA Namespace",
