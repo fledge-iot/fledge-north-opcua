@@ -37,25 +37,32 @@ const char *default_config = QUOTE({
 				"default" : PLUGIN_NAME,
 				"readonly" : "true"
 			},
+			"name" : {
+				"description" : "The OPC UA Server name to advertise",
+				"type" : "string",
+				"default" : "Fledge OPCUA",
+				"order" : "1",
+				"displayName" : "Server Name"
+			},
 			"url" : {
 				"description" : "The OPC UA Server URL",
 				"type" : "string",
 				"default" : "opc.tcp://localhost:4840/fledge/server",
-				"order" : "1",
+				"order" : "2",
 				"displayName" : "URL"
 			},
 			"uri" : {
-				"description" : "The OPC UA Server URI",
+				"description" : "The OPC UA Service URI",
 				"type" : "string",
 				"default" : "urn://fledge.dianomic.com",
-				"order" : "2",
-				"displayName" : "URL"
+				"order" : "3",
+				"displayName" : "URI"
 			},
 			"namespace" : {
 				"description" : "The OPC UA Namespace",
 				"type" : "string",
 				"default" : "http://fledge.dianomic.com",
-				"order" : "3",
+				"order" : "4",
 				"displayName" : "Namespace"
 			},
 			"source" : {
@@ -63,7 +70,7 @@ const char *default_config = QUOTE({
 				"type" : "enumeration",
 				"options" : ["readings", "statistics"],
 				"default" : "readings",
-				"order" : "4",
+				"order" : "5",
 				"displayName" : "Source"
 			}
 		});
