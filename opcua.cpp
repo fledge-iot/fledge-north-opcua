@@ -67,7 +67,7 @@ void OPCUAServer::configure(const ConfigCategory *conf)
  */
 uint32_t OPCUAServer::send(const vector<Reading *>& readings)
 {
-int n;
+int n = 0;
 
 	if (! m_server)
 	{
