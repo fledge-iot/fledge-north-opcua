@@ -34,7 +34,7 @@ Once you have completed your configuration click *Next* to move to the final pag
 The only step left is to modify the duration for which the task runs. This can only be done **after** it has been run for the first time. Enter your *North* task list again and select the OPCUA North that you just created. This will show the configuration of your North task. Click on the *Show Advanced Config* option to display your advanced configuration.
 
 +-----------+
-| |opcua_2| |
+| |opcua_3| |
 +-----------+
 
 The *Duration* option controls how long the north task will run before stopping. Each time it stops any client connected to the Fledge OPCUA server will be disconnected, in order to reduce the disconnect/reconnect volumes it is advisable to set this to a value greater than the 60 second default. In our example here we set the repeat interval to one hour, so ideally we should set the duration to an hour also such that there is no time when an OPCUA server is not running. *Duration* is set in seconds, so should be 3600 in our example.
