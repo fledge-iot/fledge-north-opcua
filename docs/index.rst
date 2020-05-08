@@ -3,8 +3,8 @@
 .. |opcua_2| image:: images/opcua_2.jpg
 .. |opcua_3| image:: images/opcua_3.jpg
 
-Fledge OPCUA Server
-===================
+OPCUA Server
+============
 
 The *fledge-north-opuca* plugin is a rather unusual north plugin as it does not send data to a system, but rather acts as a server from which other systems can pull data from Fledge. This is slightly at odds with the concept of short running tasks for sending north and does require a little more configuration when creating the North OPCUA server.
 
