@@ -352,7 +352,7 @@ OpcUa::Node& OPCUAServer::findParent(const Reading *reading)
 /**
  * Find the parent OPCUA node for this asset
  *
- * @param hierachy	The defintion for the current level of the hierarchy
+ * @param hierarchy	The defintion for the current level of the hierarchy
  * @param reading	The reading we are sending
  * @param root		The current root for the point in the hierarchy we are at
  * @param key		The key to use to lookup the cache of OPCUA nodes
