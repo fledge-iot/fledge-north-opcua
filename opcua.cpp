@@ -200,7 +200,7 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 {
 	try {
 		if (value.getType() == DatapointValue::T_INTEGER)
-			Node myvar = obj.AddVariable(m_idx, name, Variant((uint64_t)value.toInt()));
+			Node myvar = obj.AddVariable(m_idx, name, Variant((int64_t)value.toInt()));
 		else if (value.getType() == DatapointValue::T_FLOAT)
 			Node myvar = obj.AddVariable(m_idx, name, Variant(value.toDouble()));
 		else if (value.getType() == DatapointValue::T_STRING)
@@ -273,7 +273,7 @@ void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, Da
 		if (qName.Name.compare(name) == 0)
 		{
 			if (value.getType() == DatapointValue::T_INTEGER)
-				var.SetValue(Variant((uint64_t)value.toInt()));
+				var.SetValue(Variant((int64_t)value.toInt()));
 			else if (value.getType() == DatapointValue::T_FLOAT)
 				var.SetValue(Variant(value.toDouble()));
 			else if (value.getType() == DatapointValue::T_STRING)
