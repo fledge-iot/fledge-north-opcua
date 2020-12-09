@@ -198,28 +198,34 @@ void OPCUAServer::addAsset(Reading *reading)
  */
 void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, DatapointValue& value)
 {
-	if (value.getType() == DatapointValue::T_INTEGER)
-		Node myvar = obj.AddVariable(m_idx, name, Variant(value.toInt()));
-	else if (value.getType() == DatapointValue::T_FLOAT)
-		Node myvar = obj.AddVariable(m_idx, name, Variant(value.toDouble()));
-	else if (value.getType() == DatapointValue::T_STRING)
-		Node myvar = obj.AddVariable(m_idx, name, value.toString());
-	else if (value.getType() == DatapointValue::T_DP_DICT)
-	{
-		NodeId	nodeId(name.c_str(), m_idx);
-		QualifiedName	qn(name, m_idx);
-		Node child = obj.AddObject(nodeId, qn);
-		vector<Datapoint*> *children = value.getDpVec();
-		for (auto dpit = children->begin(); dpit != children->end(); dpit++)
+	try {
+		if (value.getType() == DatapointValue::T_INTEGER)
+			Node myvar = obj.AddVariable(m_idx, name, Variant((int64_t)value.toInt()));
+		else if (value.getType() == DatapointValue::T_FLOAT)
+			Node myvar = obj.AddVariable(m_idx, name, Variant(value.toDouble()));
+		else if (value.getType() == DatapointValue::T_STRING)
+			Node myvar = obj.AddVariable(m_idx, name, value.toString());
+		else if (value.getType() == DatapointValue::T_DP_DICT)
 		{
-			name = (*dpit)->getName();
-			DatapointValue& val = (*dpit)->getData();
-			addDatapoint(assetName, child, name, val);
+			NodeId	nodeId(name.c_str(), m_idx);
+			QualifiedName	qn(name, m_idx);
+			Node child = obj.AddObject(nodeId, qn);
+			vector<Datapoint*> *children = value.getDpVec();
+			for (auto dpit = children->begin(); dpit != children->end(); dpit++)
+			{
+				name = (*dpit)->getName();
+				DatapointValue& val = (*dpit)->getData();
+				addDatapoint(assetName, child, name, val);
+			}
+		} // TODO add support for arrays (T_DP_LIST)
+		else
+		{
+			m_log->warn("Asset %s, datapoint %s is unknown type %d", assetName.c_str(), name.c_str(), value.getType());
 		}
-	} // TODO add support for arrays (T_DP_LIST)
-	else
-	{
-		m_log->warn("Asset %s, datapoint %s is unknown type %d", assetName.c_str(), name.c_str(), value.getType());
+	} catch (runtime_error& r) {
+		m_log->error("Failed to add asset %s datapoint %s, %s", assetName.c_str(), name.c_str(), r.what());
+	} catch (exception& e) {
+		m_log->error("Failed to add asset %s datapoint %s, %s", assetName.c_str(), name.c_str(), e.what());
 	}
 }
 
@@ -267,7 +273,7 @@ void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, Da
 		if (qName.Name.compare(name) == 0)
 		{
 			if (value.getType() == DatapointValue::T_INTEGER)
-				var.SetValue(Variant(value.toInt()));
+				var.SetValue(Variant((int64_t)value.toInt()));
 			else if (value.getType() == DatapointValue::T_FLOAT)
 				var.SetValue(Variant(value.toDouble()));
 			else if (value.getType() == DatapointValue::T_STRING)
