@@ -40,9 +40,9 @@ class OPCUAServer {
 		void		updateAsset(Reading *reading);
 		void		addAsset(Reading *reading);
 		void		addDatapoint(std::string& assetName, OpcUa::Node& obj,
-					std::string& name, DatapointValue& value);
+					std::string& name, DatapointValue& value, struct timeval userTS);
 		void		updateDatapoint(std::string& assetName, OpcUa::Node& obj,
-					std::string& name, DatapointValue& value);
+					std::string& name, DatapointValue& value, struct timeval userTS);
 		OpcUa::Node&	findParent(const Reading *reading);
 		OpcUa::Node&	findParent(const std::vector<NodeTree>& hierarchy, const Reading *reading, OpcUa::Node& root, std::string key);
 		void 		parseChildren(NodeTree& parent, const rapidjson::Value& value);

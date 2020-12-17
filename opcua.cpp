@@ -176,13 +176,15 @@ void OPCUAServer::addAsset(Reading *reading)
 	Node obj = parent.AddObject(nodeId, qn);
 	m_log->info("Add new asset: %s", assetName.c_str());
 
+	struct timeval userTS;
+	reading->getUserTimestamp(&userTS);
 	vector<Datapoint *>& dataPoints = reading->getReadingData();
 	for (vector<Datapoint *>::iterator it = dataPoints.begin(); it != dataPoints.end(); ++it)
 	{
 		// Get the reference to a DataPointValue
 		DatapointValue& value = (*it)->getData();
 		string name = (*it)->getName();
-		addDatapoint(assetName, obj, name, value);
+		addDatapoint(assetName, obj, name, value, userTS);
 	}
 	m_assets.insert(pair<string, Node>(assetName, obj));
 }
@@ -196,15 +198,33 @@ void OPCUAServer::addAsset(Reading *reading)
  * @param name	The name of the variable to add
  * @param value	The value of the variable
  */
-void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, DatapointValue& value)
+void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, DatapointValue& value, struct timeval userTS)
 {
 	try {
 		if (value.getType() == DatapointValue::T_INTEGER)
+		{
 			Node myvar = obj.AddVariable(m_idx, name, Variant((int64_t)value.toInt()));
+			DataValue dv = myvar.GetDataValue();
+			dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
+			dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
+			myvar.SetValue(dv);
+		}
 		else if (value.getType() == DatapointValue::T_FLOAT)
+		{
 			Node myvar = obj.AddVariable(m_idx, name, Variant(value.toDouble()));
+			DataValue dv = myvar.GetDataValue();
+			dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
+			dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
+			myvar.SetValue(dv);
+		}
 		else if (value.getType() == DatapointValue::T_STRING)
+		{
 			Node myvar = obj.AddVariable(m_idx, name, value.toString());
+			DataValue dv = myvar.GetDataValue();
+			dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
+			dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
+			myvar.SetValue(dv);
+		}
 		else if (value.getType() == DatapointValue::T_DP_DICT)
 		{
 			NodeId	nodeId(name.c_str(), m_idx);
@@ -215,7 +235,7 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 			{
 				name = (*dpit)->getName();
 				DatapointValue& val = (*dpit)->getData();
-				addDatapoint(assetName, child, name, val);
+				addDatapoint(assetName, child, name, val, userTS);
 			}
 		} // TODO add support for arrays (T_DP_LIST)
 		else
@@ -245,12 +265,14 @@ string assetName = reading->getAssetName();
 		Node obj = it->second;
 
 		vector<Datapoint *>& dataPoints = reading->getReadingData();
+		struct timeval userTS;
+		reading->getUserTimestamp(&userTS);
 		for (vector<Datapoint *>::iterator dpit = dataPoints.begin(); dpit != dataPoints.end(); ++dpit)
 		{
 			// Get the reference to a DataPointValue
 			DatapointValue& value = (*dpit)->getData();
 			string name = (*dpit)->getName();
-			updateDatapoint(assetName, obj, name, value);
+			updateDatapoint(assetName, obj, name, value, userTS);
 		}
 	}
 }
@@ -263,7 +285,7 @@ string assetName = reading->getAssetName();
  * @param name	The name of the variable to update
  * @param value	The value of the variable
  */
-void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, DatapointValue& value)
+void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, DatapointValue& value, struct timeval userTS)
 {
 	bool found = false;
 	vector<OpcUa::Node> variables = obj.GetVariables();
@@ -273,11 +295,29 @@ void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, Da
 		if (qName.Name.compare(name) == 0)
 		{
 			if (value.getType() == DatapointValue::T_INTEGER)
-				var.SetValue(Variant((int64_t)value.toInt()));
+			{
+				DataValue dv = var.GetDataValue();
+				dv.Value = Variant((uint64_t)value.toInt());
+				dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
+				dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
+				var.SetValue(dv);
+			}
 			else if (value.getType() == DatapointValue::T_FLOAT)
-				var.SetValue(Variant(value.toDouble()));
+			{
+				DataValue dv = var.GetDataValue();
+				dv.Value = Variant(value.toDouble());
+				dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
+				dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
+				var.SetValue(dv);
+			}
 			else if (value.getType() == DatapointValue::T_STRING)
-				var.SetValue(value.toString());
+			{
+				DataValue dv = var.GetDataValue();
+				dv.Value = Variant(value.toString());
+				dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
+				dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
+				var.SetValue(dv);
+			}
 			else if (value.getType() == DatapointValue::T_DP_DICT)
 			{
 				vector<OpcUa::Node> childNodes = obj.GetChildren();
@@ -291,7 +331,7 @@ void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, Da
 						QualifiedName qName = child.GetBrowseName();
 						if (qName.Name.compare(name) == 0)
 						{
-							updateDatapoint(assetName, child, name, val);
+							updateDatapoint(assetName, child, name, val, userTS);
 						}
 					}
 				}
@@ -301,7 +341,7 @@ void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, Da
 	}
 	if (!found)
 	{
-		addDatapoint(assetName, obj, name, value);
+		addDatapoint(assetName, obj, name, value, userTS);
 	}
 }
 
