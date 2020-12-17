@@ -203,7 +203,7 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 	try {
 		if (value.getType() == DatapointValue::T_INTEGER)
 		{
-			Node myvar = obj.AddVariable(m_idx, name, Variant((uint64_t)value.toInt()));
+			Node myvar = obj.AddVariable(m_idx, name, Variant((int64_t)value.toInt()));
 			DataValue dv = myvar.GetDataValue();
 			dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
 			dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
