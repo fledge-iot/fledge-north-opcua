@@ -227,7 +227,8 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 		}
 		else if (value.getType() == DatapointValue::T_DP_DICT)
 		{
-			NodeId	nodeId(name.c_str(), m_idx);
+			string fullname = assetName + "_" + name;
+			NodeId	nodeId(fullname, m_idx);
 			QualifiedName	qn(name, m_idx);
 			Node child = obj.AddObject(nodeId, qn);
 			vector<Datapoint*> *children = value.getDpVec();
