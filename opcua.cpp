@@ -203,7 +203,7 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 	try {
 		if (value.getType() == DatapointValue::T_INTEGER)
 		{
-			Node myvar = obj.AddVariable(m_idx, name, Variant((uint64_t)value.toInt()));
+			Node myvar = obj.AddVariable(m_idx, name, Variant((int64_t)value.toInt()));
 			DataValue dv = myvar.GetDataValue();
 			dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
 			dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
@@ -230,24 +230,7 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 			string fullname = assetName + "_" + name;
 			NodeId	nodeId(fullname, m_idx);
 			QualifiedName	qn(name, m_idx);
-			Node child;
-			bool found = false;
-			vector<Node> nodes = obj.GetChildren();
-
-			for (auto it = nodes.begin(); it != nodes.end(); it++)
-			{
-				NodeId n = it->GetId();
-				if (n.IsString() && name.compare(n.GetStringIdentifier()) == 0)
-				{
-					found = true;
-					child = *it;
-					break;
-				}
-			}
-			if (!found)
-			{
-				child = obj.AddObject(nodeId, qn);
-			}
+			Node child = obj.AddObject(nodeId, qn);
 			vector<Datapoint*> *children = value.getDpVec();
 			for (auto dpit = children->begin(); dpit != children->end(); dpit++)
 			{
