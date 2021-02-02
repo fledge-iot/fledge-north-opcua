@@ -227,9 +227,27 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 		}
 		else if (value.getType() == DatapointValue::T_DP_DICT)
 		{
-			NodeId	nodeId(name.c_str(), m_idx);
+			string fullname = assetName + "_" + name;
+			NodeId	nodeId(fullname, m_idx);
 			QualifiedName	qn(name, m_idx);
-			Node child = obj.AddObject(nodeId, qn);
+			Node child;
+			bool found = false;
+			vector<Node> nodes = obj.GetChildren();
+
+			for (auto it = nodes.begin(); it != nodes.end(); it++)
+			{
+				NodeId n = it->GetId();
+				if (n.IsString() && name.compare(n.GetStringIdentifier()) == 0)
+				{
+					found = true;
+					child = *it;
+					break;
+				}
+			}
+			if (!found)
+			{
+				child = obj.AddObject(nodeId, qn);
+			}
 			vector<Datapoint*> *children = value.getDpVec();
 			for (auto dpit = children->begin(); dpit != children->end(); dpit++)
 			{
