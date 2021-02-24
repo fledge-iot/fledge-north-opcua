@@ -72,6 +72,20 @@ const char *default_config = QUOTE({
 				"default" : "readings",
 				"order" : "5",
 				"displayName" : "Source"
+			},
+			"root" : {
+				"description" : "The OPC UA Root node for this service",
+				"type" : "string",
+				"default" : "",
+				"order" : "6",
+				"displayName" : "Object Root"
+			},
+			"hierarchy" : {
+				"description" : "The object hierarchy to use",
+				"type" : "JSON",
+				"default" : "{}",
+				"order" : "7",
+				"displayName" : "Hierarchy"
 			}
 		});
 
