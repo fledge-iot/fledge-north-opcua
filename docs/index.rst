@@ -14,7 +14,7 @@ The process of creating a North OPCUA Server start as with any other north setup
 | |opcua_1| |
 +-----------+
 
-In addition to setting a name for this task it is recommended to set the *Repeat* interval to a higher value than the 30 second default as we will be later setting the maximum run time of the north task to a higher value. Once complete click on *Next* and move on to the configuration of the plugin itself.
+In addition to setting a name for this task it is recommended to run the OPCUA North as a service rather than a task. Running as a periodically restarted task will cause clients to be disconnected at regular intervals.  If run as a teask set the *Repeat* interval to a higher value than the 30 second default as we will be later setting the maximum run time of the north task to a higher value. Once complete click on *Next* and move on to the configuration of the plugin itself.
 
 +-----------+
 | |opcua_2| |
