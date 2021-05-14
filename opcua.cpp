@@ -238,6 +238,15 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 				DatapointValue& val = (*dpit)->getData();
 				addDatapoint(assetName, child, name, val, userTS);
 			}
+		}
+		else if (value.getType() == DatapointValue::T_FLOAT_ARRAY)
+		{
+			vector<double> array = *value.getDpArr();
+			Node myvar = obj.AddVariable(m_idx, name, Variant(array));
+			DataValue dv = myvar.GetDataValue();
+			dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
+			dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
+			myvar.SetValue(dv);
 		} // TODO add support for arrays (T_DP_LIST)
 		else
 		{
