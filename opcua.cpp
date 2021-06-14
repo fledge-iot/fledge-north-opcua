@@ -219,7 +219,7 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 		}
 		else if (value.getType() == DatapointValue::T_STRING)
 		{
-			Node myvar = obj.AddVariable(m_idx, name, value.toString());
+			Node myvar = obj.AddVariable(m_idx, name, value.toStringValue());
 			DataValue dv = myvar.GetDataValue();
 			dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
 			dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
@@ -323,7 +323,7 @@ void OPCUAServer::updateDatapoint(string& assetName, Node& obj, string& name, Da
 			else if (value.getType() == DatapointValue::T_STRING)
 			{
 				DataValue dv = var.GetDataValue();
-				dv.Value = Variant(value.toString());
+				dv.Value = Variant(value.toStringValue());
 				dv.SourceTimestamp = DateTime::FromTimeT(userTS.tv_sec, userTS.tv_usec);
 				dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
 				var.SetValue(dv);
@@ -383,8 +383,7 @@ OpcUa::Node& OPCUAServer::findParent(const Reading *reading)
 			if (m_hierarchy[j].getName().compare(name) == 0)
 			{
 				DatapointValue value = datapoints[i]->getData();
-				string svalue = value.toString();
-				svalue = svalue.substr(1, svalue.length() - 2);
+				string svalue = value.toStringValue();
 				OpcUa::Node opcNode;
 				auto it = m_parents.find(svalue);
 				if (it != m_parents.end())
@@ -425,8 +424,7 @@ OpcUa::Node& OPCUAServer::findParent(const vector<NodeTree>& hierarchy, const Re
 			if (hierarchy[j].getName().compare(name) == 0)
 			{
 				DatapointValue value = datapoints[i]->getData();
-				string svalue = value.toString();
-				svalue = svalue.substr(1, svalue.length() - 2);
+				string svalue = value.toStringValue();
 				string newkey = key.append("/");
 				newkey = newkey.append(svalue);
 				OpcUa::Node opcNode;
