@@ -27,6 +27,15 @@ extern "C" {
 
 #define PLUGIN_NAME "opcua"
 
+#define CONTROL_MAP QUOTE({						\
+				"nodes" : [				\
+					{				\
+						"name" : "test",	\
+						"type" : "integer"	\
+					}				\
+				]					\
+		})
+
 /**
  * Plugin specific default configuration
  */
@@ -86,6 +95,20 @@ static const char *default_config = QUOTE({
 				"default" : "{}",
 				"order" : "7",
 				"displayName" : "Hierarchy"
+			},
+			"controlService" : {
+				"description" : "The service to which control will be routed",
+				"type" : "string",
+				"default" : "",
+				"order" : "8",
+				"displayName" : "Control Destination"
+			},
+			"controlMap" : {
+				"description" : "The control map to use",
+				"type" : "JSON",
+				"default" : CONTROL_MAP,
+				"order" : "9",
+				"displayName" : "Control Map"
 			}
 		});
 
@@ -99,7 +122,7 @@ static const char *default_config = QUOTE({
 static PLUGIN_INFORMATION info = {
 	PLUGIN_NAME,			// Name
 	VERSION,			// Version
-	0,				// Flags
+	SP_CONTROL,			// Flags
 	PLUGIN_TYPE_NORTH,		// Type
 	"1.0.0",			// Interface version
 	default_config			// Configuration
@@ -136,6 +159,15 @@ uint32_t plugin_send(const PLUGIN_HANDLE handle,
 OPCUAServer	*opcua = (OPCUAServer *)handle;
 
 	return opcua->send(readings);
+}
+
+void plugin_register(PLUGIN_HANDLE handle,
+		bool ( *write)(const char *name, const char *value, ControlDestination destination, ...),
+		int (* operation)(char *operation, int paramCount, char *parameters[], ControlDestination destination, ...))
+{
+OPCUAServer	*opcua = (OPCUAServer *)handle;
+
+	opcua->registerControl(write, operation);
 }
 
 /**

@@ -24,7 +24,7 @@ using namespace OpcUa;
 /**
  * Constructor for the OPCUAServer object
  */
-OPCUAServer::OPCUAServer() : m_server(NULL)
+OPCUAServer::OPCUAServer() : m_server(NULL), m_write(NULL)
 {
 	m_log = Logger::getLogger();
 }
@@ -86,6 +86,56 @@ void OPCUAServer::configure(const ConfigCategory *conf)
 			}
 		}
 	}
+	if (conf->itemExists("controlService"))
+	{
+		m_controlService = conf->getValue("controlService");
+	}
+	if (conf->itemExists("controlMap"))
+	{
+		string controlMap = conf->getValue("controlMap");
+		rapidjson::Document doc;
+		rapidjson::ParseResult result = doc.Parse(controlMap.c_str());
+		if (! result)
+		{
+			Logger::getLogger()->error("Error parsing control map: %s at %u",
+						doc.GetParseError(), result.Offset());
+		}
+		else
+		{
+			if (doc.HasMember("nodes") && doc["nodes"].IsArray())
+			{
+				rapidjson::Value& nodes = doc["nodes"];
+				for (auto& node : nodes.GetArray())
+				{
+					string name, type;
+					if (node.HasMember("name"))
+					{
+						rapidjson::Value& v = node["name"];
+						if (v.IsString())
+							name = v.GetString();
+					}
+					if (node.HasMember("type"))
+					{
+						rapidjson::Value& v = node["type"];
+						if (v.IsString())
+							type = v.GetString();
+					}
+					if (name.empty() || type.empty())
+					{
+						Logger::getLogger()->error("Badly formed control map, both node name and type must be provided");
+					}
+					else
+					{
+						addControlNode(name, type);
+					}
+				}
+			}
+			else
+			{
+				m_log->error("Missing the nodes element in the control map");
+			}
+		}
+	}
 }
 
 /**
@@ -141,6 +191,9 @@ int n = 0;
 			}
 
 			m_server->EnableEventNotification();
+
+			createControlNodes();
+
 		} catch (exception& e) {
 			m_log->error("Failed to start OPC UA Server: %s", e.what());
 		}
@@ -366,6 +419,12 @@ void OPCUAServer::stop()
 	}
 }
 
+void OPCUAServer::registerControl(bool ( *write)(const char *name, const char *value, ControlDestination destination, ...),
+                                int (* operation)(char *operation, int paramCount, char *parameters[], ControlDestination destination, ...))
+{
+	m_write = write;
+}
+
 /**
  * Find the parent OPCUA node for this asset
  *
@@ -445,4 +504,193 @@ OpcUa::Node& OPCUAServer::findParent(const vector<NodeTree>& hierarchy, const Re
 		}
 	}
 	return root;
+}
+
+/**
+ * Add a new control node
+ *
+ * @param name	The name of the node
+ * @param type	The type of the node
+ */
+void OPCUAServer::addControlNode(const string& name, const string& type)
+{
+	m_control.push_back(ControlNode(name, type));
+}
+
+/**
+ * Create the actual nodes inthe OPCUA server for the control
+ */
+void OPCUAServer::createControlNodes()
+{
+	m_subscriptionClient.registerServer(this);
+	m_subscription =  m_server->CreateSubscription(100, m_subscriptionClient);
+	Node	objects = m_server->GetObjectsNode();
+	NodeId nid(99, m_idx);
+	QualifiedName qn("Control", m_idx);
+	Node	parent = objects.AddObject(nid, qn);
+	for (auto &n : m_control)
+	{
+		n.createNode(m_idx, parent);
+		m_subscription->SubscribeDataChange(n.getNode());
+	}
+}
+
+/**
+ * One of our nodes has changed value. Find the corresponding
+ * ControlNode entry and set the set poitn operation.
+ *
+ * @param node	The node that has changed
+ * @param value	THe new value of the node
+ */
+void OPCUAServer::nodeChange(const Node& node, const string& value)
+{
+	if (!m_write)
+	{
+		m_log->error("Node change has occured but we have no way of wrinting to the service");
+		return;
+	}
+	for (auto &n : m_control)
+	{
+		if (n.getNode() == node)
+		{
+			(*m_write)(n.getName().c_str(), value.c_str(), DestinationService, m_controlService.c_str());
+			return;
+		}
+	}
+	m_log->warn("Failed to find control node");
+}
+
+/**
+ * Create the control node
+ *
+ * @param idx		The namespace index
+ * @param parent	The parent node
+ */
+void OPCUAServer::ControlNode::createNode(uint32_t idx, Node& parent)
+{
+	if (m_type.compare("integer") == 0)
+		m_node = parent.AddVariable(idx, m_name, Variant(32));
+	if (m_type.compare("float") == 0)
+		m_node = parent.AddVariable(idx, m_name, Variant(32.8));
+}
+
+/**
+ * Subscription Client handler for data change events
+ *
+ * @param handle	
+ * @param node		The node that has changed
+ * @param val		The value the node is beign assigned
+ * @param attr		The Attribute ID
+ */
+void SubClient::DataChange(uint32_t handle,
+				const OpcUa::Node & node,
+				const OpcUa::Variant & val,
+				OpcUa::AttributeId attr)
+{
+string value;
+
+	if (val.IsNul())
+		return;
+	if (val.IsScalar())
+	{
+		switch (val.Type())
+		{
+			case OpcUa::VariantType::BYTE:
+			{
+				long lval = static_cast<uint8_t>(val);
+				value = to_string(lval);
+				break;
+			}
+			case OpcUa::VariantType::SBYTE:
+			{
+				long lval = static_cast<int8_t>(val);
+				value = to_string(lval);
+				break;
+			}
+			case OpcUa::VariantType::DATE_TIME:
+			{
+				OpcUa::DateTime timestamp = static_cast<OpcUa::DateTime>(val);
+				int64_t raw = static_cast<int64_t>(timestamp);
+				struct timeval tm;
+				uint64_t micro = raw % 10000000;
+				raw -= micro;
+				raw = raw / 10000000LL;
+				const int64_t daysBetween1601And1970 = 134774;
+				const int64_t secsFrom1601To1970 = daysBetween1601And1970 * 24 * 3600LL;
+				tm.tv_sec = raw - secsFrom1601To1970;
+				tm.tv_usec = micro / 10;
+
+				char date_time[80], usec[10];
+
+				// Populate tm structure with UTC time
+				struct tm timeinfo;
+				gmtime_r(&tm.tv_sec, &timeinfo);
+
+				// Build date_time with format YYYY-MM-DD HH24:MM:SS.MS+00:00
+				// Create datetime with seconds
+				std::strftime(date_time, sizeof(date_time),
+						"%Y-%m-%d %H:%M:%S", &timeinfo);
+				// Add microseconds
+				snprintf(usec, sizeof(usec), ".%06lu", tm.tv_usec);
+				strcat(date_time, usec);
+				strcat(date_time, "+00:00");
+				value = date_time;
+				break;
+			}
+			case OpcUa::VariantType::INT16:
+			{
+				long lval = static_cast<int16_t>(val);
+				value = to_string(lval);
+				break;
+			}
+			case OpcUa::VariantType::UINT16:
+			{
+				long lval = static_cast<uint16_t>(val);
+				value = to_string(lval);
+				break;
+			}
+			case OpcUa::VariantType::INT32:
+			{
+				long lval = static_cast<int32_t>(val);
+				value = to_string(lval);
+				break;
+			}
+			case OpcUa::VariantType::UINT32:
+			{
+				long lval = static_cast<uint32_t>(val);
+				value = to_string(lval);
+				break;
+			}
+			case OpcUa::VariantType::INT64:
+			{
+				long lval = static_cast<int64_t>(val);
+				value = to_string(lval);
+				break;
+			}
+			case OpcUa::VariantType::UINT64:
+			{
+				long lval = static_cast<uint64_t>(val);
+				value = to_string(lval);
+				break;
+			}
+			case OpcUa::VariantType::FLOAT:
+			{
+				double fval = static_cast<float>(val);
+				value = to_string(fval);
+				break;
+			}
+			case OpcUa::VariantType::DOUBLE:
+			{
+				double fval = static_cast<double>(val);
+				value = to_string(fval);
+				break;
+			}
+			default:
+			{
+				value = val.ToString();
+				break;
+			}
+		}
+	}
+	m_server->nodeChange(node, value);
 }
