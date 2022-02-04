@@ -96,13 +96,6 @@ static const char *default_config = QUOTE({
 				"order" : "7",
 				"displayName" : "Hierarchy"
 			},
-			"controlService" : {
-				"description" : "The service to which control will be routed",
-				"type" : "string",
-				"default" : "",
-				"order" : "8",
-				"displayName" : "Control Destination"
-			},
 			"controlMap" : {
 				"description" : "The control map to use",
 				"type" : "JSON",

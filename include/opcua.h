@@ -62,13 +62,20 @@ class OPCUAServer {
 		class ControlNode {
 			public:
 				ControlNode(const std::string& name, const std::string& type)
-									: m_name(name), m_type(type) {};
+									: m_name(name), m_type(type), m_destination(DestinationBroadcast) {};
+				ControlNode(const std::string& name, const std::string& type, ControlDestination dest, const std::string& arg)
+									: m_name(name), m_type(type), m_destination(dest), m_arg(arg) {};
 				void			createNode(uint32_t idx, OpcUa::Node& parent);
 				const std::string&	getName() const { return m_name; };
 				const OpcUa::Node	getNode() const { return m_node; };
+				ControlDestination	getDestination() const { return m_destination; };
+				const std::string&	getArgument() const { return m_arg; };
 			private:
 				const std::string	m_name;
 				const std::string	m_type;
+				const ControlDestination
+							m_destination;
+				const std::string	m_arg;
 				OpcUa::Node		m_node;
 		};
 		void		updateAsset(Reading *reading);
@@ -81,6 +88,7 @@ class OPCUAServer {
 		OpcUa::Node&	findParent(const std::vector<NodeTree>& hierarchy, const Reading *reading, OpcUa::Node& root, std::string key);
 		void 		parseChildren(NodeTree& parent, const rapidjson::Value& value);
 		void		addControlNode(const std::string& name, const std::string& type);
+		void		addControlNode(const std::string& name, const std::string& type, ControlDestination dest, const std::string& arg);
 		void		createControlNodes();
 		bool 					(*m_write)(const char *name, const char *value, ControlDestination destination, ...);
 		OpcUa::UaServer				*m_server;
@@ -95,7 +103,6 @@ class OPCUAServer {
 		OpcUa::Node				m_objects;
 		Logger					*m_log;
 		std::vector<NodeTree>			m_hierarchy;
-		std::string				m_controlService;
 		OpcUa::Subscription::SharedPtr		m_subscription;
 		SubClient				m_subscriptionClient;
 		std::vector<ControlNode>		m_control;

@@ -86,10 +86,6 @@ void OPCUAServer::configure(const ConfigCategory *conf)
 			}
 		}
 	}
-	if (conf->itemExists("controlService"))
-	{
-		m_controlService = conf->getValue("controlService");
-	}
 	if (conf->itemExists("controlMap"))
 	{
 		string controlMap = conf->getValue("controlMap");
@@ -107,7 +103,7 @@ void OPCUAServer::configure(const ConfigCategory *conf)
 				rapidjson::Value& nodes = doc["nodes"];
 				for (auto& node : nodes.GetArray())
 				{
-					string name, type;
+					string name, type, service, asset, script;
 					if (node.HasMember("name"))
 					{
 						rapidjson::Value& v = node["name"];
@@ -120,9 +116,39 @@ void OPCUAServer::configure(const ConfigCategory *conf)
 						if (v.IsString())
 							type = v.GetString();
 					}
+					if (node.HasMember("service"))
+					{
+						rapidjson::Value& v = node["service"];
+						if (v.IsString())
+							service = v.GetString();
+					}
+					if (node.HasMember("asset"))
+					{
+						rapidjson::Value& v = node["asset"];
+						if (v.IsString())
+							asset = v.GetString();
+					}
+					if (node.HasMember("script"))
+					{
+						rapidjson::Value& v = node["script"];
+						if (v.IsString())
+							script = v.GetString();
+					}
 					if (name.empty() || type.empty())
 					{
 						Logger::getLogger()->error("Badly formed control map, both node name and type must be provided");
+					}
+					else if (!script.empty())
+					{
+						addControlNode(name, type, DestinationScript, script);
+					}
+					else if (!asset.empty())
+					{
+						addControlNode(name, type, DestinationAsset, asset);
+					}
+					else if (!service.empty())
+					{
+						addControlNode(name, type, DestinationService, service);
 					}
 					else
 					{
@@ -507,7 +533,8 @@ OpcUa::Node& OPCUAServer::findParent(const vector<NodeTree>& hierarchy, const Re
 }
 
 /**
- * Add a new control node
+ * Add a new control node. Since we have two parameters
+ * this is a broadcast control
  *
  * @param name	The name of the node
  * @param type	The type of the node
@@ -515,6 +542,19 @@ OpcUa::Node& OPCUAServer::findParent(const vector<NodeTree>& hierarchy, const Re
 void OPCUAServer::addControlNode(const string& name, const string& type)
 {
 	m_control.push_back(ControlNode(name, type));
+}
+
+/**
+ * Add a new control node.
+ *
+ * @param name	The name of the node
+ * @param type	The type of the node
+ * @param destination	The control destiantion
+ * @param arg	Argument to the control destination
+ */
+void OPCUAServer::addControlNode(const string& name, const string& type, ControlDestination destination, const string& arg)
+{
+	m_control.push_back(ControlNode(name, type, destination, arg));
 }
 
 /**
@@ -546,14 +586,23 @@ void OPCUAServer::nodeChange(const Node& node, const string& value)
 {
 	if (!m_write)
 	{
-		m_log->error("Node change has occured but we have no way of wrinting to the service");
+		m_log->error("Node change has occured but we have no callback registered for the service");
 		return;
 	}
 	for (auto &n : m_control)
 	{
 		if (n.getNode() == node)
 		{
-			(*m_write)(n.getName().c_str(), value.c_str(), DestinationService, m_controlService.c_str());
+			ControlDestination dest = n.getDestination();
+			if (dest != DestinationBroadcast)
+			{
+				const string arg = n.getArgument();
+				(*m_write)(n.getName().c_str(), value.c_str(), dest, arg.c_str());
+			}
+			else
+			{
+				(*m_write)(n.getName().c_str(), value.c_str(), DestinationBroadcast, NULL);
+			}
 			return;
 		}
 	}
