@@ -106,6 +106,7 @@ class OPCUAServer {
 		OpcUa::Subscription::SharedPtr		m_subscription;
 		SubClient				m_subscriptionClient;
 		std::vector<ControlNode>		m_control;
+		std::string				m_controlRoot;
 };
 
 #endif

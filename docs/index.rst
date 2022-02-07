@@ -36,6 +36,8 @@ This second page allows for the setting of the configuration within the OPCUA se
 
   - **Hierarchy**: This allows you to define a hierarchy for the OPCUA objects that is based on the meta data within the readings. See below for the definition of hierarchies.
 
+  - **Control Root**: The root node under whuch all control nodes will be created in the OPCUA server.
+
   - **Control Map**: This is defined if you wish your OPC/UA server to allow write to specific nodes to cause control inputs into the Fledge system. The definition of the control map is shown below.
 
 

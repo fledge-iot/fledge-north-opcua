@@ -86,6 +86,10 @@ void OPCUAServer::configure(const ConfigCategory *conf)
 			}
 		}
 	}
+	if (conf->itemExists("controlRoot"))
+		m_controlRoot = conf->getValue("controlRoot");
+	else
+		m_log->error("Missing URL in configuration");
 	if (conf->itemExists("controlMap"))
 	{
 		string controlMap = conf->getValue("controlMap");
@@ -566,7 +570,7 @@ void OPCUAServer::createControlNodes()
 	m_subscription =  m_server->CreateSubscription(100, m_subscriptionClient);
 	Node	objects = m_server->GetObjectsNode();
 	NodeId nid(99, m_idx);
-	QualifiedName qn("Control", m_idx);
+	QualifiedName qn(m_controlRoot, m_idx);
 	Node	parent = objects.AddObject(nid, qn);
 	for (auto &n : m_control)
 	{

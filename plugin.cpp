@@ -96,6 +96,13 @@ static const char *default_config = QUOTE({
 				"order" : "7",
 				"displayName" : "Hierarchy"
 			},
+			"controlRoot" : {
+				"description" : "The OPC UA Root node to use for control items for this service",
+				"type" : "string",
+				"default" : "Control",
+				"order" : "8",
+				"displayName" : "Control Root"
+			},
 			"controlMap" : {
 				"description" : "The control map to use",
 				"type" : "JSON",
