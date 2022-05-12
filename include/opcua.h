@@ -107,6 +107,8 @@ class OPCUAServer {
 		SubClient				m_subscriptionClient;
 		std::vector<ControlNode>		m_control;
 		std::string				m_controlRoot;
+		std::vector<DatapointValue::DatapointTag>
+							m_warned;
 };
 
 #endif
