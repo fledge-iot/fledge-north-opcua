@@ -331,9 +331,19 @@ void OPCUAServer::addDatapoint(string& assetName, Node& obj, string& name, Datap
 			dv.Encoding |= DATA_VALUE_SOURCE_TIMESTAMP;
 			myvar.SetValue(dv);
 		} // TODO add support for arrays (T_DP_LIST)
-		else
+		else 
 		{
-			m_log->warn("Asset %s, datapoint %s is unknown type %d", assetName.c_str(), name.c_str(), value.getType());
+			// Log unsupported types just once per run of the plugin
+			bool found = false;
+			DatapointValue::DatapointTag type = value.getType();
+			for (auto& w : m_warned)
+				if (w == type)
+					found = true;
+			if (!found)
+			{
+				m_log->warn("Asset %s, datapoint %s is unknown type %d", assetName.c_str(), name.c_str(), value.getType());
+				m_warned.push_back(value.getType());
+			}
 		}
 	} catch (runtime_error& r) {
 		m_log->error("Failed to add asset %s datapoint %s, %s", assetName.c_str(), name.c_str(), r.what());
