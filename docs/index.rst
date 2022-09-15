@@ -36,6 +36,10 @@ This second page allows for the setting of the configuration within the OPCUA se
 
   - **Hierarchy**: This allows you to define a hierarchy for the OPCUA objects that is based on the meta data within the readings. See below for the definition of hierarchies.
 
+  - **Control Root**: The root node under whuch all control nodes will be created in the OPCUA server.
+
+  - **Control Map**: This is defined if you wish your OPC/UA server to allow write to specific nodes to cause control inputs into the Fledge system. The definition of the control map is shown below.
+
 
 Once you have completed your configuration click *Next* to move to the final page and then enable your north task and click *Done*.
 
@@ -115,3 +119,75 @@ The data would be shown in the OPCUA server in the following structure
              General
 
 Any data that does not fit this structure will be stored at the root.
+
+Control Map
+-----------
+
+A control map consists of a JSON documents that defines a number of nodes within the OPC/UA server. Each of these nodes may have a set of properties that define the actions to take when the node is modified.
+
+The following cpntrol map defines two control nodes called *FanSpeed* and *FanPitch*, both of which are of type integer.
+
+.. code-block:: console
+
+   {
+      "nodes" : [
+          {
+              "name" : "FanSpeed",
+              "type" : "integer"
+          },
+          {
+              "name" : "FanPitch",
+              "type" : "integer"
+          }
+      ]
+   }
+
+The nodes above have no properties that define the action to take when the nodes are written. When a change is made to either of these codes the control service dispatcher will be called with a broadcast request. Changing the value of *FanSpeed* in the OPC/UA north server will therefore cause every services that supports a control interface to be called with a write request to update *FanSpeed*.
+
+Adding the property *service* to a control node will cause the action taken on modification of the node to only be applied to that service.
+
+.. code-block:: console
+
+   {
+      "nodes" : [
+          {
+              "name"    : "FanSpeed",
+              "type"    : "integer"
+              "service" : "FanController"
+          }
+      ]
+   }
+
+The above control node defintion would result in changes to the *FanSpeed* node only calling the south service name *FanController* with a write request.
+
+The property *asset* can be used to limit the action to just the south service that is responsible for ingesting the named asset.
+
+.. code-block:: console
+
+   {
+      "nodes" : [
+          {
+              "name"  : "FanSpeed",
+              "type"  : "integer"
+              "asset" : "Fan012"
+          }
+      ]
+   }
+
+The above would therefore only send the write reuest to the south service that ingests the asset *Fan012* when the OPC/UA node is updated.
+
+The final option supported is to execute a script in the service dispatcher, this is specified using the *script* property.
+
+.. code-block:: console
+
+   {
+      "nodes" : [
+          {
+              "name"   : "FanSpeed",
+              "type"   : "integer"
+              "script" : "FanUpdate"
+          }
+      ]
+   }
+
+Only one of *service*, *asset* or *script* properties should be present per node in the control map.
