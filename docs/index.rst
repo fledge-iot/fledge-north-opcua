@@ -30,7 +30,7 @@ This second page allows for the setting of the configuration within the OPCUA se
 
   - **Namespace**: This defines the namespace that you wish to use for your OPCUA objects. If you are not employing a client that does namespace checking this is best left as the default.
 
-  - **Source**: What data is being made available via this OPCUA server. You may chose to make the reading data available or the Fledge statistics
+  - **Source**: What data is being made available via this OPCUA server. You may chose to make the reading data available, the Fledge statistics or the Fledge audit log.
 
   - **Object Root**: This item can be used to define a root within the OPCUA server under which all objects are stored. If left empty then the objects will be created under the root.
 
