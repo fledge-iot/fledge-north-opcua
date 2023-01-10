@@ -20,22 +20,23 @@
 ## Author: Mark Riddoch
 ##
 
-fledge_location=`pwd`
-os_name=`(grep -o '^NAME=.*' /etc/os-release | cut -f2 -d\" | sed 's/"//g')`
-os_version=`(grep -o '^VERSION_ID=.*' /etc/os-release | cut -f2 -d\" | sed 's/"//g')`
+fledge_location=$(pwd)
+os_name=$(grep -o '^NAME=.*' /etc/os-release | cut -f2 -d\" | sed 's/"//g')
+os_version=$(grep -o '^VERSION_ID=.*' /etc/os-release | cut -f2 -d\" | sed 's/"//g')
 echo "Platform is ${os_name}, Version: ${os_version}"
 
-if [[ ( $os_name == *"Red Hat"* || $os_name == *"CentOS"* ) &&  $os_version == *"7"* ]]; then
-	echo Installing development tools 7 components
-	sudo yum install -y yum-utils
-	sudo yum-config-manager --enable rhel-server-rhscl-7-rpms
-	sudo yum install -y devtoolset-7
-	echo Installing boost components
-	sudo yum install -y boost-filesystem
-	sudo yum install -y boost-program-options
-	source scl_source enable devtoolset-7
-	export CC=/opt/rh/devtoolset-7/root/usr/bin/gcc
-	export CXX=/opt/rh/devtoolset-7/root/usr/bin/g++
+if [[ ( $os_name == *"Red Hat"* || $os_name == *"CentOS"* ) ]]; then
+    echo "Installing boost components..."
+    sudo yum install -y boost-filesystem boost-program-options
+    if [[ ${os_version} -eq "7" ]]; then
+        echo "Installing development tools 7 components..."
+        sudo yum install -y yum-utils
+        sudo yum-config-manager --enable rhel-server-rhscl-7-rpms
+        sudo yum install -y devtoolset-7
+        source scl_source enable devtoolset-7
+        export CC=/opt/rh/devtoolset-7/root/usr/bin/gcc
+        export CXX=/opt/rh/devtoolset-7/root/usr/bin/g++
+    fi
 elif apt --version 2>/dev/null; then
 	echo Installing boost components
 	sudo apt install -y libboost-filesystem-dev
@@ -57,6 +58,7 @@ if [ ! -d $directory/freeopcua ]; then
 	cd $directory
 	echo Fetching Free OPCUA library
 	git clone https://github.com/dianomic/freeopcua.git
+	git checkout Kapsch
 	cd freeopcua
 	mkdir build
 	sed -e 's/option(SSL_SUPPORT_MBEDTLS "Support rsa-oaep password encryption using mbedtls library " ON)/option(SSL_SUPPORT_MBEDTLS "Support rsa-oaep password encryption using mbedtls library " OFF)/' \
@@ -71,6 +73,6 @@ if [ ! -d $directory/freeopcua ]; then
 	cmake ..
 	make
 	cd ..
-	echo Set the environment variable FREEOPCUA to `pwd`
-	echo export FREEOPCUA=`pwd`
+	echo Set the environment variable FREEOPCUA to $(pwd)
+	echo export FREEOPCUA=$(pwd)
 fi
