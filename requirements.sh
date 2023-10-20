@@ -20,57 +20,59 @@
 ## Author: Mark Riddoch
 ##
 
-fledge_location=`pwd`
-os_name=`(grep -o '^NAME=.*' /etc/os-release | cut -f2 -d\" | sed 's/"//g')`
-os_version=`(grep -o '^VERSION_ID=.*' /etc/os-release | cut -f2 -d\" | sed 's/"//g')`
+set -e
+
+fledge_location=$(pwd)
+os_name=$(grep -o '^NAME=.*' /etc/os-release | cut -f2 -d\" | sed 's/"//g')
+os_version=$(grep -o '^VERSION_ID=.*' /etc/os-release | cut -f2 -d\" | sed 's/"//g')
 echo "Platform is ${os_name}, Version: ${os_version}"
 
-if [[ ( $os_name == *"Red Hat"* || $os_name == *"CentOS"* ) &&  $os_version == *"7"* ]]; then
-	echo Installing development tools 7 components
-	sudo yum install -y yum-utils
-	sudo yum-config-manager --enable rhel-server-rhscl-7-rpms
-	sudo yum install -y devtoolset-7
-	echo Installing boost components
-	sudo yum install -y boost-filesystem
-	sudo yum install -y boost-program-options
-	source scl_source enable devtoolset-7
-	export CC=/opt/rh/devtoolset-7/root/usr/bin/gcc
-	export CXX=/opt/rh/devtoolset-7/root/usr/bin/g++
+if [[ ( $os_name == *"Red Hat"* || $os_name == *"CentOS"* ) ]]; then
+    echo "Installing boost components..."
+    sudo yum install -y boost-filesystem boost-program-options
+    if [[ ${os_version} -eq "7" ]]; then
+        echo "Installing development tools 7 components..."
+        sudo yum install -y yum-utils
+        sudo yum-config-manager --enable rhel-server-rhscl-7-rpms
+        sudo yum install -y devtoolset-7
+        source scl_source enable devtoolset-7
+        export CC=/opt/rh/devtoolset-7/root/usr/bin/gcc
+        export CXX=/opt/rh/devtoolset-7/root/usr/bin/g++
+    fi
 elif apt --version 2>/dev/null; then
-	echo Installing boost components
-	sudo apt install -y libboost-filesystem-dev
-	sudo apt install -y libboost-program-options-dev
+    echo Installing boost components
+    sudo apt install -y libboost-filesystem-dev
+    sudo apt install -y libboost-program-options-dev
 else
-	echo "Requirements cannot be automatically installed, please refer README.rst to install requirements manually"
+    echo "Requirements cannot be automatically installed, please refer README.rst to install requirements manually"
 fi
 
-if [ $# -eq 1 ]; then
-	directory=$1
-	if [ ! -d $directory ]; then
-		mkdir -p $directory
-	fi
+if [[ $# -eq 1 ]]; then
+    directory=$1
+    if [[ ! -d $directory ]]; then mkdir -p $directory; fi
 else
-	directory=~
+    directory=~
 fi
 
-if [ ! -d $directory/freeopcua ]; then
-	cd $directory
-	echo Fetching Free OPCUA library
-	git clone https://github.com/dianomic/freeopcua.git
-	cd freeopcua
-	mkdir build
-	sed -e 's/option(SSL_SUPPORT_MBEDTLS "Support rsa-oaep password encryption using mbedtls library " ON)/option(SSL_SUPPORT_MBEDTLS "Support rsa-oaep password encryption using mbedtls library " OFF)/' \
-		-e 's/add_library(opcuaclient/add_library(opcuaclient STATIC/' \
-		-e 's/add_library(opcuacore/add_library(opcuacore STATIC/' \
-		-e 's/add_library(opcuaprotocol/add_library(opcuaprotocol STATIC/' \
-		-e 's/add_library(opcuaserver/add_library(opcuaserver STATIC/' \
-		< CMakeLists.txt > CMakeLists.txt.$$ && mv CMakeLists.txt CMakeLists.txt.orig && \
-		mv CMakeLists.txt.$$ CMakeLists.txt
-	cd build
+cd $directory
+if [[ -d freeopcua ]]; then rm -rf freeopcua; fi
 
-	cmake ..
-	make
-	cd ..
-	echo Set the environment variable FREEOPCUA to `pwd`
-	echo export FREEOPCUA=`pwd`
-fi
+echo Fetching Free OPCUA library
+git clone https://github.com/dianomic/freeopcua.git
+cd freeopcua
+git checkout Kapsch
+mkdir build
+sed \
+	-e 's/add_library(opcuaclient/add_library(opcuaclient STATIC/' \
+	-e 's/add_library(opcuacore/add_library(opcuacore STATIC/' \
+	-e 's/add_library(opcuaprotocol/add_library(opcuaprotocol STATIC/' \
+	-e 's/add_library(opcuaserver/add_library(opcuaserver STATIC/' \
+	< CMakeLists.txt > CMakeLists.txt.$$ && mv CMakeLists.txt CMakeLists.txt.orig && \
+	mv CMakeLists.txt.$$ CMakeLists.txt
+cd build
+
+cmake ..
+make
+cd ..
+echo Set the environment variable FREEOPCUA to $(pwd)
+echo export FREEOPCUA=$(pwd)
