@@ -84,7 +84,7 @@ class OPCUAServer {
 					std::string& name, DatapointValue& value, struct timeval userTS);
 		void		updateDatapoint(std::string& assetName, OpcUa::Node& obj,
 					std::string& name, DatapointValue& value, struct timeval userTS);
-		OpcUa::Node&	findParent(const Reading *reading);
+		OpcUa::Node		findParent(const Reading *reading);
 		OpcUa::Node&	findParent(const std::vector<NodeTree>& hierarchy, const Reading *reading, OpcUa::Node& root, std::string key);
 		void 		parseChildren(NodeTree& parent, const rapidjson::Value& value);
 		void		addControlNode(const std::string& name, const std::string& type);
@@ -99,6 +99,7 @@ class OPCUAServer {
 		std::string				m_uri;
 		std::string				m_namespace;
 		std::string				m_root;
+		bool					m_includeAsset;
 		int					m_idx;
 		OpcUa::Node				m_objects;
 		Logger					*m_log;
