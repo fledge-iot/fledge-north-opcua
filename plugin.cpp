@@ -89,25 +89,32 @@ static const char *default_config = QUOTE({
 				"order" : "6",
 				"displayName" : "Object Root"
 			},
+			"IncludeAssetName" : {
+				"description" : "If true, create an OPC UA object named after the Asset in each Reading",
+				"type" : "boolean",
+				"default" : "true",
+				"displayName" : "Include Asset as Object",
+				"order" : "7"
+			},
 			"hierarchy" : {
 				"description" : "The object hierarchy to use",
 				"type" : "JSON",
 				"default" : "{}",
-				"order" : "7",
+				"order" : "8",
 				"displayName" : "Hierarchy"
 			},
 			"controlRoot" : {
 				"description" : "The OPC UA Root node to use for control items for this service",
 				"type" : "string",
 				"default" : "Control",
-				"order" : "8",
+				"order" : "9",
 				"displayName" : "Control Root"
 			},
 			"controlMap" : {
 				"description" : "The control map to use",
 				"type" : "JSON",
 				"default" : CONTROL_MAP,
-				"order" : "9",
+				"order" : "10",
 				"displayName" : "Control Map"
 			}
 		});
