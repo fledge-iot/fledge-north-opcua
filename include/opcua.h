@@ -1,10 +1,11 @@
 #ifndef _OPCUASERVER_H
 #define _OPCUASERVER_H
+#include <map>
+#include <stack>
 #include <reading.h>
 #include <config_category.h>
 #include <logger.h>
 #include <string>
-#include <map>
 #include <opc/ua/node.h>
 #include <opc/ua/subscription.h>
 #include <opc/ua/server/server.h>
@@ -84,8 +85,9 @@ class OPCUAServer {
 					std::string& name, DatapointValue& value, struct timeval userTS);
 		void		updateDatapoint(std::string& assetName, OpcUa::Node& obj,
 					std::string& name, DatapointValue& value, struct timeval userTS);
+		OpcUa::Node	createHierarchyFromPathSegments(std::stack<std::string> &pathSegments, const OpcUa::Node &root, std::string &key);
 		OpcUa::Node		findParent(const Reading *reading);
-		OpcUa::Node&	findParent(const std::vector<NodeTree>& hierarchy, const Reading *reading, OpcUa::Node& root, std::string key);
+		OpcUa::Node		findParent(const std::vector<NodeTree>& hierarchy, const Reading *reading, OpcUa::Node& root, std::string key);
 		void 		parseChildren(NodeTree& parent, const rapidjson::Value& value);
 		void		addControlNode(const std::string& name, const std::string& type);
 		void		addControlNode(const std::string& name, const std::string& type, ControlDestination dest, const std::string& arg);
@@ -100,6 +102,7 @@ class OPCUAServer {
 		std::string				m_namespace;
 		std::string				m_root;
 		bool					m_includeAsset;
+		bool					m_parseAsset;
 		int					m_idx;
 		OpcUa::Node				m_objects;
 		Logger					*m_log;

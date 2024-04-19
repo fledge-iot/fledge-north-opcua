@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stack>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -26,6 +25,7 @@ using namespace OpcUa;
  * Returns the number of separators found in a passed string
  *
  * @param inputString	String in which to count separators
+ * @param separator		Separator character
  * @return				Number of separators
  */
 static size_t NumSeparators(const std::string &inputString, const char separator)
@@ -53,7 +53,7 @@ static size_t NumSeparators(const std::string &inputString, const char separator
 static size_t ParsePath(std::stack<std::string> &items, const std::string &fullPath, const char separator)
 {
 	std::string path = StringSlashFix(fullPath);
-	size_t numSymbols = 1 + NumSeparators(path, separator);
+	size_t numSymbols = 1 + NumSeparators(path, separator) + items.size();
 
 	while (!path.empty())
 	{
@@ -69,11 +69,44 @@ static size_t ParsePath(std::stack<std::string> &items, const std::string &fullP
 }
 
 /**
+ * Remove a token from the end of a path string
+ *
+ * @param token		String token to find
+ * @param path		Path string to be updated
+ * @param separator	Separator character
+ * @return			True if a token was removed, otherwise false
+ */
+static bool TrimTokenFromEndOfPath(const std::string &token, std::string &path, const char separator)
+{
+	bool tokenTrimmed = false;
+	size_t tokenSize = token.size();
+
+	// Remove any trailing slashes
+	for (char singleChar = path.back(); singleChar == separator; singleChar = path.back())
+	{
+		path.pop_back();
+	}
+
+	// Locate the last slash in the path and see if the rest of the string matches the token
+	size_t lastSlash = path.find_last_of(separator);
+	if (lastSlash != std::string::npos)
+	{
+		if (path.compare(lastSlash + 1, tokenSize, token) == 0)
+		{
+			path.erase(lastSlash, std::string::npos);
+			tokenTrimmed = true;
+		}
+	}
+
+	return tokenTrimmed;
+}
+
+/**
  * Create a string representation of an OPC UA NodeId.
  * Note: current implementation can handle only integer and string identifiers.
  *
  * @param nodeId	OPC UA NodeId
- * @return			Number of tokens found
+ * @return			NodeId as string
  */
 static std::string NodeIdString(const NodeId &nodeId)
 {
@@ -102,7 +135,7 @@ static std::string NodeIdString(const NodeId &nodeId)
 /**
  * Constructor for the OPCUAServer object
  */
-OPCUAServer::OPCUAServer() : m_server(NULL), m_write(NULL), m_includeAsset(true)
+OPCUAServer::OPCUAServer() : m_server(NULL), m_write(NULL), m_includeAsset(true), m_parseAsset(false)
 {
 	m_log = Logger::getLogger();
 }
@@ -148,6 +181,14 @@ void OPCUAServer::configure(const ConfigCategory *conf)
 	}
 	else
 		m_includeAsset = true;
+	if (conf->itemExists("ParseAssetName"))
+	{
+		string configValue = conf->getValue("ParseAssetName");
+		std::transform(configValue.begin(), configValue.end(), configValue.begin(), ::tolower);
+		m_parseAsset = (configValue.compare("true") == 0) ? true : false;
+	}
+	else
+		m_parseAsset = false;
 	if (conf->itemExists("hierarchy"))
 	{
 		string hierarchy = conf->getValue("hierarchy");
@@ -351,7 +392,10 @@ void OPCUAServer::addAsset(Reading *reading)
 			NodeId nodeId(assetName, m_idx);
 			QualifiedName qn(assetName, m_idx);
 			obj = parent.AddObject(nodeId, qn);
-			m_log->debug("Asset added: %s (NodeId: %s ParentId: %s)", assetName.c_str(), NodeIdString(obj.GetId()).c_str(), NodeIdString(parent.GetId()).c_str());
+			m_log->debug("Asset added: %s (NodeId: %s ParentId: %s)",
+						 assetName.c_str(),
+						 NodeIdString(obj.GetId()).c_str(),
+						 NodeIdString(parent.GetId()).c_str());
 		}
 		else
 		{
@@ -384,6 +428,7 @@ void OPCUAServer::addAsset(Reading *reading)
  * @param obj	The parent object
  * @param name	The name of the variable to add
  * @param value	The value of the variable
+ * @param userTS	The timestamp of the variable
  */
 void OPCUAServer::addDatapoint(string &assetName, Node &obj, string &name, DatapointValue &value, struct timeval userTS)
 {
@@ -496,6 +541,7 @@ void OPCUAServer::updateAsset(Reading *reading)
  * @param obj	The parent object
  * @param name	The name of the variable to update
  * @param value	The value of the variable
+ * @param userTS	The timestamp of the variable
  */
 void OPCUAServer::updateDatapoint(string &assetName, Node &obj, string &name, DatapointValue &value, struct timeval userTS)
 {
@@ -583,7 +629,15 @@ void OPCUAServer::registerControl(bool (*write)(const char *name, const char *va
 OpcUa::Node OPCUAServer::findParent(const Reading *reading)
 {
 	OpcUa::Node opcNode = m_objects;
+	string key;
 	vector<Datapoint *> datapoints = reading->getReadingData();
+	std::stack<std::string> pathSegments;
+
+	if (m_parseAsset)
+	{
+		ParsePath(pathSegments, reading->getAssetName(), '/');
+	}
+
 	for (int i = 0; i < datapoints.size(); i++)
 	{
 		string name = datapoints[i]->getName();
@@ -594,45 +648,23 @@ OpcUa::Node OPCUAServer::findParent(const Reading *reading)
 				DatapointValue value = datapoints[i]->getData();
 				string svalue = value.toStringValue();
 
-				std::stack<std::string> pathSegments;
-				ParsePath(pathSegments, svalue, '/');
-				std::string key;
-				while (!pathSegments.empty())
+				// If the first path segment from the Asset Name matches
+				// the last segment of the path, remove the duplicate.
+				if (!pathSegments.empty())
 				{
-					string pathSegment = pathSegments.top();
-
-					if (key.empty())
-					{
-						key.append(pathSegment);
-					}
-					else
-					{
-						key.append("/");
-						key.append(pathSegment);
-					}
-
-					auto it = m_parents.find(key);
-					if (it != m_parents.end())
-					{
-						opcNode = it->second;
-					}
-					else
-					{
-						NodeId parentId = opcNode.GetId();
-						NodeId nodeId(key, m_idx);
-						QualifiedName qn(pathSegment, m_idx);
-						opcNode = opcNode.AddObject(nodeId, qn);
-						m_parents.insert(pair<string, Node>(key, opcNode));
-						m_log->debug("Asset added: %s (NodeId: %s ParentId: %s)",
-									pathSegment.c_str(),
-									NodeIdString(opcNode.GetId()).c_str(),
-									NodeIdString(parentId).c_str());
-					}
-					pathSegments.pop();
+					TrimTokenFromEndOfPath(pathSegments.top(), svalue, '/');
 				}
+
+				ParsePath(pathSegments, svalue, '/');
+				opcNode = createHierarchyFromPathSegments(pathSegments, opcNode, key);
 				return findParent(m_hierarchy[j].getChildren(), reading, opcNode, svalue);
 			}
 		}
+	}
+
+	if (!pathSegments.empty())
+	{
+		opcNode = createHierarchyFromPathSegments(pathSegments, opcNode, key);	
 	}
 
 	return opcNode;
@@ -647,8 +679,16 @@ OpcUa::Node OPCUAServer::findParent(const Reading *reading)
  * @param key		The key to use to lookup the cache of OPCUA nodes
  * @return 		The OPCUA parent node
  */
-OpcUa::Node &OPCUAServer::findParent(const vector<NodeTree> &hierarchy, const Reading *reading, OpcUa::Node &root, string key)
+OpcUa::Node OPCUAServer::findParent(const vector<NodeTree> &hierarchy, const Reading *reading, OpcUa::Node &root, string key)
 {
+	OpcUa::Node opcNode = root;
+	std::stack<std::string> pathSegments;
+
+	if (m_parseAsset)
+	{
+		ParsePath(pathSegments, reading->getAssetName(), '/');
+	}
+
 	vector<Datapoint *> datapoints = reading->getReadingData();
 	for (int i = 0; i < datapoints.size(); i++)
 	{
@@ -661,47 +701,71 @@ OpcUa::Node &OPCUAServer::findParent(const vector<NodeTree> &hierarchy, const Re
 				string svalue = value.toStringValue();
 				string newkey = StringSlashFix(key);
 
-				std::stack<std::string> pathSegments;
-				ParsePath(pathSegments, svalue, '/');
-				while (!pathSegments.empty())
+				// If the first path segment from the Asset Name matches
+				// the last segment of the path, remove the duplicate.
+				if (!pathSegments.empty())
 				{
-					string pathSegment = pathSegments.top();
-
-					if (newkey.empty())
-					{
-						newkey.append(pathSegment);
-					}
-					else
-					{
-						newkey.append("/");
-						newkey.append(pathSegment);
-					}
-
-					auto it = m_parents.find(newkey);
-					if (it != m_parents.end())
-					{
-						root = it->second;
-					}
-					else
-					{
-						NodeId parentId = root.GetId();
-						NodeId nodeId(newkey, m_idx);
-						QualifiedName qn(pathSegment, m_idx);
-						root = root.AddObject(nodeId, qn);
-						m_parents.insert(pair<string, Node>(newkey, root));
-						m_log->debug("Asset added: %s (NodeId: %s ParentId: %s)",
-									pathSegment.c_str(),
-									NodeIdString(root.GetId()).c_str(),
-									NodeIdString(parentId).c_str());
-					}
-					pathSegments.pop();
+					TrimTokenFromEndOfPath(pathSegments.top(), svalue, '/');
 				}
 
-				return findParent(hierarchy[j].getChildren(), reading, root, svalue);
+				ParsePath(pathSegments, svalue, '/');
+				opcNode = createHierarchyFromPathSegments(pathSegments, opcNode, newkey);
+				return findParent(hierarchy[j].getChildren(), reading, opcNode, svalue);
 			}
 		}
 	}
-	return root;
+
+	return opcNode;
+}
+
+/**
+ * Create an OPC UA Address Space hierarchy from a collection of path segments
+ *
+ * @param pathSegments	Stack object containing path segments
+ * @param root			OPC UA Node under which to add child Nodes
+ * @param key			Key to lookup an OPC UA Node in the index of Nodes
+ * @return				OPC UA Node representing the leaf node of the created hierarchy
+ */
+OpcUa::Node OPCUAServer::createHierarchyFromPathSegments(std::stack<std::string> &pathSegments, const OpcUa::Node &root, std::string &key)
+{
+	OpcUa::Node opcNode = root;
+
+	while (!pathSegments.empty())
+	{
+		string pathSegment = pathSegments.top();
+
+		if (key.empty())
+		{
+			key.append(pathSegment);
+		}
+		else
+		{
+			key.append("/");
+			key.append(pathSegment);
+		}
+
+		auto it = m_parents.find(key);
+		if (it != m_parents.end())
+		{
+			opcNode = it->second;
+		}
+		else
+		{
+			NodeId parentId = opcNode.GetId();
+			NodeId nodeId(key, m_idx);
+			QualifiedName qn(pathSegment, m_idx);
+			opcNode = opcNode.AddObject(nodeId, qn);
+			m_parents.insert(pair<string, Node>(key, opcNode));
+			m_log->debug("Asset added: %s (NodeId: %s ParentId: %s)",
+						 pathSegment.c_str(),
+						 NodeIdString(opcNode.GetId()).c_str(),
+						 NodeIdString(parentId).c_str());
+		}
+		
+		pathSegments.pop();
+	}
+
+	return opcNode;
 }
 
 /**
@@ -752,7 +816,7 @@ void OPCUAServer::createControlNodes()
  * ControlNode entry and set the set point operation.
  *
  * @param node	The node that has changed
- * @param value	THe new value of the node
+ * @param value	The new value of the node
  */
 void OPCUAServer::nodeChange(const Node &node, const string &value)
 {
