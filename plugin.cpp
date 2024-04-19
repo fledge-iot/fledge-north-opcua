@@ -97,7 +97,7 @@ static const char *default_config = QUOTE({
 				"order" : "7"
 			},
 			"ParseAssetName" : {
-				"description" : "If true, parse a hierarchy from the Asset Name and use it as the beginning of the path",
+				"description" : "If true, parse a hierarchy from the Asset Name and add it to the end of the path",
 				"type" : "boolean",
 				"default" : "false",
 				"displayName" : "Parse Hierarchy from Asset Name",
