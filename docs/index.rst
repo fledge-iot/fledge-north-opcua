@@ -40,6 +40,10 @@ This second page allows for the setting of the configuration within the OPC UA s
     It can occur that the Asset Name in an incoming Reading does not reflect the owning object and that the proper name will be found in the hierarchy definition.
     If this is the case, uncheck this box.
 
+  - **Parse Hierarchy from Asset Name**: The plugin can parse a slash-separated path string to create an OPC UA Address Space hierarchy (see :ref:`Parsing_of_Full_Paths`).
+    In some configurations, the Asset Name contains part of (or all of) the path.
+    If this setting is true, parse the Asset Name and add any slash-separated path segments to the end of the path.
+
   - **Hierarchy**: This allows you to define a hierarchy for the OPC UA objects that is based on the meta data within the readings. See below for the definition of hierarchies.
 
   - **Control Root**: The root node under which all control nodes will be created in the OPC UA server.
@@ -125,6 +129,8 @@ The data would be shown in the OPC UA server in the following structure:
              General
 
 Any data that does not fit this structure will be stored at the root.
+
+.. _Parsing_of_Full_Paths:
 
 Parsing of Full Paths
 ~~~~~~~~~~~~~~~~~~~~~
