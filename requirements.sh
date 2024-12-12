@@ -60,7 +60,7 @@ if [[ -d freeopcua ]]; then rm -rf freeopcua; fi
 echo Fetching Free OPCUA library
 git clone https://github.com/dianomic/freeopcua.git
 cd freeopcua
-git checkout Kapsch
+git checkout FOGL-9329
 mkdir build
 sed \
 	-e 's/add_library(opcuaclient/add_library(opcuaclient STATIC/' \
@@ -71,7 +71,7 @@ sed \
 	mv CMakeLists.txt.$$ CMakeLists.txt
 cd build
 
-cmake ..
+cmake -G "Unix Makefiles" -DCMAKE_DEPENDS_USE_COMPILER=OFF ..
 make
 cd ..
 echo Set the environment variable FREEOPCUA to $(pwd)
